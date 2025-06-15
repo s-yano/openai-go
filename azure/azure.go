@@ -128,29 +128,39 @@ func WithAPIKey(apiKey string) option.RequestOption {
 
 // jsonRoutes have JSON payloads - we'll deserialize looking for a .model field in there
 // so we won't have to worry about individual types for completions vs embeddings, etc...
-var jsonRoutes = map[string]bool{
-	"/openai/completions":        true,
-	"/openai/chat/completions":   true,
-	"/openai/embeddings":         true,
-	"/openai/audio/speech":       true,
-	"/openai/images/generations": true,
+var jsonRoutes = []string{
+	"/openai/completions",
+	"/openai/chat/completions",
+	"/openai/embeddings",
+	"/openai/audio/speech",
+	"/openai/images/generations",
 }
 
 // audioMultipartRoutes have mime/multipart payloads. These are less generic - we're very much
 // expecting a transcription or translation payload for these.
-var audioMultipartRoutes = map[string]bool{
-	"/openai/audio/transcriptions": true,
-	"/openai/audio/translations":   true,
+var audioMultipartRoutes = []string{
+	"/openai/audio/transcriptions",
+	"/openai/audio/translations",
+}
+
+func pathMatchesRoute(path string, routes []string) bool {
+	for _, route := range routes {
+		if strings.HasSuffix(path, route) {
+			return true
+		}
+	}
+	return false
 }
 
 // getReplacementPathWithDeployment parses the request body to extract out the Model parameter (or equivalent)
 // (note, the req.Body is fully read as part of this, and is replaced with a bytes.Reader)
 func getReplacementPathWithDeployment(req *http.Request) (string, error) {
-	if jsonRoutes[req.URL.Path] {
+
+	if pathMatchesRoute(req.URL.Path, jsonRoutes) {
 		return getJSONRoute(req)
 	}
 
-	if audioMultipartRoutes[req.URL.Path] {
+	if pathMatchesRoute(req.URL.Path, audioMultipartRoutes) {
 		return getAudioMultipartRoute(req)
 	}
 

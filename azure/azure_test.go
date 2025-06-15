@@ -115,3 +115,32 @@ func TestNoRouteChangeNeeded(t *testing.T) {
 		t.Fatalf("replacementpath didn't match: %s", replacementPath)
 	}
 }
+
+func TestJSONRouteWithPrefix(t *testing.T) {
+	chatCompletionParams := openai.ChatCompletionNewParams{
+		Model: openai.ChatModel("arbitraryDeployment"),
+		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.AssistantMessage("You are a helpful assistant"),
+			openai.UserMessage("Can you tell me another word for the universe?"),
+		},
+	}
+
+	serializedBytes, err := apijson.MarshalRoot(chatCompletionParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req, err := http.NewRequest("POST", "/prefix/openai/chat/completions", bytes.NewReader(serializedBytes))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	replacementPath, err := getReplacementPathWithDeployment(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if replacementPath != "/prefix/openai/deployments/arbitraryDeployment/chat/completions" {
+		t.Fatalf("replacementpath didn't match: %s", replacementPath)
+	}
+}
